@@ -14,16 +14,17 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/cloudflare/cfssl/log"
-	cfocsp "github.com/cloudflare/cfssl/ocsp"
-	"github.com/hashicorp/vault/api"
-	"golang.org/x/crypto/ocsp"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/cloudflare/cfssl/log"
+	cfocsp "github.com/cloudflare/cfssl/ocsp"
+	"github.com/hashicorp/vault/api"
+	"golang.org/x/crypto/ocsp"
 )
 
 func main() {
