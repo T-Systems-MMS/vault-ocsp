@@ -58,3 +58,13 @@ a corresponding PEM and PKCS#1 encoded RSA private key file.
 The key can be generated using `openssl rsa` and the certificate should
 be signed by a CA that is trusted by the OCSP clients that will query
 the Vault OCSP instance.
+
+Make Vault OCSP known to Vault
+------------------------------
+
+You can use the
+[`/pki/config/urls` API](https://www.vaultproject.io/api/secret/pki/index.html#set-urls)
+to define Vault OCSP as OCSP responder. You should use an OCSP URL that
+will be reachable from your OCSP clients. If you want to make the OCSP
+responder available via https itself you will need a reverse proxy like
+nginx or Apache httpd in front of Vault OCSP.
