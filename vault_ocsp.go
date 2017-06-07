@@ -225,7 +225,8 @@ func (source VaultSource) Response(request *ocsp.Request) (response []byte, pres
 		}
 		certificate, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			err = fmt.Errorf("could not parse certificate: %v", err)
+			log.Errorf("could not parse certificate: %v", err)
+			return
 		}
 		if certificate.NotAfter.Before(time.Now()) {
 			// certificate is expired, store unauthorized response in cache
