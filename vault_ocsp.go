@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package main
 
 import (
@@ -14,16 +15,17 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/cloudflare/cfssl/log"
-	cfocsp "github.com/cloudflare/cfssl/ocsp"
-	"github.com/hashicorp/vault/api"
-	"golang.org/x/crypto/ocsp"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/cloudflare/cfssl/log"
+	cfocsp "github.com/cloudflare/cfssl/ocsp"
+	"github.com/hashicorp/vault/api"
+	"golang.org/x/crypto/ocsp"
 )
 
 func main() {
@@ -161,7 +163,7 @@ func (source VaultSource) buildCAHash(algorithm crypto.Hash) (issuerHash []byte,
 func (source VaultSource) Response(request *ocsp.Request) (response []byte, present bool) {
 	caHash, err := source.buildCAHash(request.HashAlgorithm)
 	if err != nil {
-		log.Errorf("Error building CA certificate hash with algorithm %s: %v", request.HashAlgorithm, err)
+		log.Errorf("Error building CA certificate hash with algorithm %d: %v", request.HashAlgorithm, err)
 		return
 	}
 	if bytes.Compare(request.IssuerKeyHash, caHash) != 0 {
@@ -224,7 +226,8 @@ func (source VaultSource) Response(request *ocsp.Request) (response []byte, pres
 		}
 		certificate, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			err = fmt.Errorf("could not parse certificate: %v", err)
+			log.Errorf("could not parse certificate: %v", err)
+			return
 		}
 		if certificate.NotAfter.Before(time.Now()) {
 			// certificate is expired, store unauthorized response in cache
