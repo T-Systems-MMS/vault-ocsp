@@ -162,7 +162,7 @@ func (source VaultSource) buildCAHash(algorithm crypto.Hash) (issuerHash []byte,
 func (source VaultSource) Response(request *ocsp.Request) (response []byte, present bool) {
 	caHash, err := source.buildCAHash(request.HashAlgorithm)
 	if err != nil {
-		log.Errorf("Error building CA certificate hash with algorithm %s: %v", request.HashAlgorithm, err)
+		log.Errorf("Error building CA certificate hash with algorithm %d: %v", request.HashAlgorithm, err)
 		return
 	}
 	if bytes.Compare(request.IssuerKeyHash, caHash) != 0 {
