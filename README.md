@@ -32,7 +32,7 @@ go build -o vault-ocsp
 Running Vault OCSP
 ------------------
 
-Vault OCSP is helpful
+Vault OCSP is helpful:
 
 ```bash
 ./vault-ocsp -help
@@ -43,6 +43,8 @@ Usage of ./vault-ocsp:
         OCSP responder signing certificate file
   -responderKey string
         OCSP responder signing private key file
+  -serverAddr string
+        Server IP and Port to use (default ":8080")
 ```
 
 Vault OCSP supports the same environment variables as the Vault command

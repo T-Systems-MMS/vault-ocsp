@@ -28,6 +28,7 @@ import (
 
 func main() {
 	var pkiMount = flag.String("pkimount", "pki", "vault PKI mount to use")
+	var serverAddr = flag.String("serverAddr", ":8080", "Server IP and Port to use")
 	var responderCertFile = flag.String("responderCert", "", "OCSP responder signing certificate file")
 	var responderKeyFile = flag.String("responderKey", "", "OCSP responder signing private key file")
 
@@ -59,7 +60,7 @@ func main() {
 	http.Handle("/", cfocsp.NewResponder(vaultSource))
 
 	server := &http.Server{
-		Addr: ":8080",
+		Addr: *serverAddr,
 	}
 	if err := server.ListenAndServe(); err != nil {
 		log.Criticalf("ListenAndServe failed: %v", err)
