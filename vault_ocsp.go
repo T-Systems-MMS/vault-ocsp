@@ -120,7 +120,7 @@ func NewVaultSource(pkiMount string, responderCertificate *x509.Certificate, res
 	if err != nil {
 		return nil, fmt.Errorf("error initializing vault client: %v", err)
 	}
-	vaultRequest := client.NewRequest(http.MethodGet, fmt.Sprintf("v1/%s/ca", pkiMount))
+	vaultRequest := client.NewRequest(http.MethodGet, fmt.Sprintf("/v1/%s/ca", pkiMount))
 	vaultResponse, err := client.RawRequest(vaultRequest)
 	if err != nil {
 		return nil, fmt.Errorf("error getting CA certificate from vault: %v", err)
