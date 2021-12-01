@@ -59,7 +59,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	http.Handle("/", cfocsp.NewResponder(vaultSource))
+	http.Handle("/", cfocsp.NewResponder(vaultSource, nil))
 
 	server := &http.Server{
 		Addr: *serverAddr,
@@ -160,74 +160,65 @@ func (source VaultSource) buildCAHash(algorithm crypto.Hash) (issuerHash []byte,
 	return issuerHash, nil
 }
 
-func (source VaultSource) Response(request *ocsp.Request) (response []byte, present bool) {
+func (source VaultSource) Response(request *ocsp.Request) ([]byte, http.Header, error) {
 	caHash, err := source.buildCAHash(request.HashAlgorithm)
 	if err != nil {
-		log.Errorf("Error building CA certificate hash with algorithm %d: %v", request.HashAlgorithm, err)
-		return
+		return nil, nil, fmt.Errorf("error building CA certificate hash with algorithm %d: %v", request.HashAlgorithm, err)
 	}
 	if bytes.Compare(request.IssuerKeyHash, caHash) != 0 {
-		log.Errorf("Request issuer key has does not match CA subject key hash")
-		return
+		return nil, nil, errors.New("request issuer key has does not match CA subject key hash")
 	}
 
 	cacheKey := request.SerialNumber.String()
-	response, present = source.cached[cacheKey]
+	response, present := source.cached[cacheKey]
 	if present {
-		return
+		return response, nil, nil
 	}
 	vaultSerial := toVaultSerial(request.SerialNumber)
 	log.Infof("OCSP request for serial %s\n", vaultSerial)
 	vaultResponse, err := source.vaultClient.Logical().Read(
 		fmt.Sprintf("%s/cert/%s", source.pkiMount, vaultSerial))
 	if err != nil {
-		log.Errorf("Error reading certificate information for %s from vault", vaultSerial)
-		return
+		return nil, nil, fmt.Errorf("error reading certificate information for %s from vault", vaultSerial)
 	}
 	revocationTime, found := vaultResponse.Data["revocation_time"]
 	if !found {
 		// no revocation time in data
-		return
+		return response, nil, nil
 	}
 	switch revocationTime.(type) {
 	case json.Number:
 		revTime, err := revocationTime.(json.Number).Int64()
 		if err != nil {
-			log.Errorf("Could not convert revocation time to int64 value")
-			return
+			return nil, nil, errors.New("could not convert revocation time to int64 value")
 		}
 
 		if revTime != 0 {
 			log.Infof("Certificate with serial number %s is revoked", vaultSerial)
 			response, err = source.buildRevokedResponse(request.SerialNumber, time.Unix(revTime, 0))
 			if err != nil {
-				log.Errorf("could not build response %v", err)
-				return
+				return nil, nil, fmt.Errorf("could not build response %v", err)
 			}
 			source.cached[cacheKey] = response
-			present = true
-			return
+			return response, nil, nil
 		}
 
 		certificateString, found := vaultResponse.Data["certificate"]
 		if !found {
 			// no certificate in data
-			return
+			return response, nil, nil
 		}
 		certificateBytes, err := ioutil.ReadAll(strings.NewReader(certificateString.(string)))
 		if err != nil {
-			log.Errorf("could not read certificate %v", err)
-			return
+			return nil, nil, fmt.Errorf("could not read certificate %v", err)
 		}
 		block, _ := pem.Decode(certificateBytes)
 		if block == nil {
-			log.Errorf("could not decode PEM data")
-			return
+			return nil, nil, errors.New("could not decode PEM data")
 		}
 		certificate, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			log.Errorf("could not parse certificate: %v", err)
-			return
+			return nil, nil, fmt.Errorf("could not parse certificate: %v", err)
 		}
 		if certificate.NotAfter.Before(time.Now()) {
 			// certificate is expired, store unauthorized response in cache
@@ -238,14 +229,13 @@ func (source VaultSource) Response(request *ocsp.Request) (response []byte, pres
 			log.Infof("Certificate with serial %s is valid", vaultSerial)
 			response, err = source.buildOkResponse(request.SerialNumber)
 			if err != nil {
-				log.Errorf("could not build response %v", err)
-				return
+				return nil, nil, fmt.Errorf("could not build response %v", err)
 			}
 		}
 		present = true
 	}
 
-	return
+	return response, nil, nil
 }
 
 func (source VaultSource) buildRevokedResponse(serialNumber *big.Int, revocationTime time.Time) ([]byte, error) {
